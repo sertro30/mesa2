@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MANUALES</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f3e5f5; /* Color morado bajo */
+        }
+        .header {
+            background-color: #9c27b0; /* Color morado */
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 20px;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+        }
+        .header-logo img {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .header-buttons {
+            display: flex;
+            align-items: center;
+        }
+        .header-buttons button {
+            background-color: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 20px; /* Ajusta la separación entre los botones */
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap; /* Para que los elementos se puedan mover a la siguiente línea */
+            justify-content: space-between;
+            padding: 20px;
+            margin: 0 auto;
+            max-width: 1200px;
+        }
+        .options-container {
+            flex: 1;
+            margin-right: 20px;
+            min-width: 280px; /* Ajuste mínimo para pantallas pequeñas */
+        }
+        .options {
+            max-height: 100px; /* Ajuste la altura máxima */
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .option-item {
+            cursor: pointer;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+            transition: background-color 0.3s;
+        }
+        .option-item:last-child {
+            border-bottom: none;
+        }
+        .option-item:hover {
+            background-color: #f0f0f0;
+        }
+        .content {
+            flex: 2;
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-width: 280px; /* Ajuste mínimo para pantallas pequeñas */
+            max-height: 400px; /* Ajusta la altura máxima del contenido */
+            overflow-y: auto; /* Añade scroll si el contenido es demasiado grande */
+        }
+        .steps {
+            list-style-type: none;
+            padding: 0;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            width: 100%; /* Ajuste para que ocupe el 100% del contenedor */
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            box-sizing: border-box; /* Incluye padding y border en el tamaño total */
+        }
+        .hidden {
+            display: none;
+        }
+
+        /* Media Queries para diseño responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                height: auto;
+                text-align: center;
+            }
+            .header-buttons {
+                justify-content: center;
+                margin-top: 10px;
+            }
+            .container {
+                flex-direction: column;
+            }
+            .options-container, .content {
+                margin-right: 0;
+                margin-bottom: 20px; /* Espacio entre contenedores */
+            }
+            .search-bar input[type="text"] {
+                width: calc(100% - 20px); /* Para evitar desbordamiento en el contenedor */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-buttons button {
+                margin-left: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-logo">
+            <img src="Logo-amarillo.png" alt="Logo">
+            <div class="header-buttons">
+                <button onclick="showMenu('menu1')">MESA DE SERVICIO</button>
+                <button onclick="showMenu('menu2')">PROCESOS MASIVOS</button>
+            </div>
+        </div>
+    </div>
+    <div id="menu1Container" class="container">
+        <!-- Primer menú de opciones -->
+        <div class="options-container">
+            <h2>MESA DE SERVICIO</h2>
+            <h3>Base de conocimientos</h3>
+            <div class="container search-bar">
+                <input type="text" id="searchBox1" placeholder="Buscar..." onkeyup="filterOptions('options1')">
+            </div>
+            <div id="options1" class="options"></div>
+        </div>
+        <!-- Segunda lista de opciones -->
+        <div id="subOptions1" class="options-container hidden">
+            <h3>Sub opciones</h3>
+            <div id="subOptionsList1" class="options"></div>
+        </div>
+        <!-- Contenido a la derecha para el primer menú -->
+        <div id="content1" class="content">
+            <div id="menu1Content">
+                <h2>Pasos a seguir</h2>
+                <ul id="steps1" class="steps"></ul>
+                <a id="downloadLink1" href="#" download>Descargar Archivo</a>
+                <div id="additionalContent1"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu2Container" class="container hidden">
+        <!-- Segundo menú de opciones -->
+        <div class="options-container">
+            <h2>PROCESOS MASIVOS</h2>
+            <h3>Base de conocimientos</h3>
+            <div class="container search-bar">
+                <input type="text" id="searchBox2" placeholder="Buscar..." onkeyup="filterOptions('options2')">
+            </div>
+            <div id="options2" class="options"></div>
+        </div>
+        <!-- Segunda lista de opciones -->
+        <div id="subOptions2" class="options-container hidden">
+            <h3>Sub opciones</h3>
+            <div id="subOptionsList2" class="options"></div>
+        </div>
+        <!-- Contenido a la derecha para el segundo menú -->
+        <div id="content2" class="content">
+            <div id="menu2Content">
+                <h2>SOLUCIONES</h2>
+                <ul id="steps2" class="steps"></ul>
+                <a id="downloadLink2" href="#" download>Descargar Archivo</a>
+                <div id="additionalContent2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+      const data1 = {
+    PROCESOS: {
+        steps: ["Paso 1", "Paso 2", "Paso 3"],
+        file: "archivo_procesos.xlsx",
+        subOptions: {
+            WEBRPRO: {
+                steps: ["Sub Paso 1.1", "Sub Paso 1.2", "Sub Paso 1.3"],
+                file: "archivo_webrpro.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1: Query</strong></p>
+                    <p><a href="https://example.com/documento_webrpro_query" target="_blank">Documento Query WEBRPRO</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/documento_webrpro_solucion2" target="_blank">Documento Solución 2 WEBRPRO</a></p>
+                `
+            },
+            FSMVISTEC: {
+                steps: ["Sub Paso 2.1", "Sub Paso 2.2", "Sub Paso 2.3"],
+                file: "archivo_fsmvistec.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="C:/path/to/document_fsmvistec_sol1.pdf">Documento Solución 1 FSMVISTEC</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="C:/path/to/document_fsmvistec_sol2.pdf">Documento Solución 2 FSMVISTEC</a></p>
+                `
+            }
+        }
+    },
+    EQUIPOS: {
+        steps: ["Paso 1", "Paso 2", "Paso 3"],
+        file: "archivo_equipos.xlsx",
+        subOptions: {
+            REGULARIZAR_EN_AS2: {
+                steps: ["Sub Paso 1.1", "Sub Paso 1.2", "Sub Paso 1.3"],
+                file: "archivo_regularizar_en_as2.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="https://example.com/documento_regularizar_as2_sol1" target="_blank">Documento Solución 1 REGULARIZAR EN AS2</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/documento_regularizar_as2_sol2" target="_blank">Documento Solución 2 REGULARIZAR EN AS2</a></p>
+                `
+            },
+            PDECO: {
+                steps: ["QUERY PARA COLOCAR"],
+                file: "archivo_pdeco.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1: Query</strong></p>
+                    <p><a href="https://example.com/documento_pdeco_query" target="_blank">Documento Query PDECO</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/documento_pdeco_solucion2" target="_blank">Documento Solución 2 PDECO</a></p>
+                `
+            }
+        }
+    },
+    FACTURACION: {
+        steps: ["Paso 1", "Paso 2", "Paso 3"],
+        file: "archivo_facturacion.xlsx",
+        subOptions: {
+            PROMOCIONES: {
+                steps: ["Sub Paso 1.1", "Sub Paso 1.2", "Sub Paso 1.3"],
+                file: "archivo_promociones.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="https://example.com/promociones_sol1" target="_blank">Documento Solución 1 PROMOCIONES</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/promociones_sol2" target="_blank">Documento Solución 2 PROMOCIONES</a></p>
+                `
+            },
+            NO_REFLEJA_PAGO: {
+                steps: ["Sub Paso 2.1", "Sub Paso 2.2", "Sub Paso 2.3"],
+                file: "archivo_no_pago.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="C:/path/to/document_no_pago_sol1.pdf">Documento Solución 1 NO REFLEJA PAGO</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="C:/path/to/document_no_pago_sol2.pdf">Documento Solución 2 NO REFLEJA PAGO</a></p>
+                `
+            }
+        }
+    }
+};
+
+        const data2 = {
+            CORTES: {
+                steps: ["Paso 1", "Paso 2", "Paso 3"],
+        file: "archivo_cortes.xlsx",
+        subOptions: {
+            OPCION: {
+                steps: ["Sub Paso 1.1", "Sub Paso 1.2", "Sub Paso 1.3"],
+                file: "archivo_opcion.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="https://example.com/documento_opcion_sol1" target="_blank">Documento Solución 1 OPCION</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/documento_opcion_sol2" target="_blank">Documento Solución 2 OPCION</a></p>
+                `
+            },
+            OPCION_B: {
+                steps: ["Sub Paso 2.1", "Sub Paso 2.2", "Sub Paso 2.3"],
+                file: "archivo_opcion_b.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="C:/path/to/document_opcion_b_sol1.pdf">Documento Solución 1 OPCION B</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="C:/path/to/document_opcion_b_sol2.pdf">Documento Solución 2 OPCION B</a></p>
+                `
+            }
+        }
+    },
+    AFECTACIONES: {
+        steps: ["Paso 1", "Paso 2", "Paso 3"],
+        file: "archivo_afectaciones.xlsx",
+        subOptions: {
+            BANCO_1: {
+                steps: ["Sub Paso 1.1", "Sub Paso 1.2", "Sub Paso 1.3"],
+                file: "archivo_banco_1.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="https://example.com/documento_banco_1_sol1" target="_blank">Documento Solución 1 BANCO 1</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="https://example.com/documento_banco_1_sol2" target="_blank">Documento Solución 2 BANCO 1</a></p>
+                `
+            },
+            BANCO_2: {
+                steps: ["Sub Paso 2.1", "Sub Paso 2.2", "Sub Paso 2.3"],
+                file: "archivo_banco_2.xlsx",
+                additionalContent: `
+                    <p><strong>Solución 1</strong></p>
+                    <p><a href="C:/path/to/document_banco_2_sol1.pdf">Documento Solución 1 BANCO 2</a></p>
+                    <p><strong>Solución 2</strong></p>
+                    <p><a href="C:/path/to/document_banco_2_sol2.pdf">Documento Solución 2 BANCO 2</a></p>
+                `
+            }
+        }
+    },
+    MEDIOS_MAGNETICOS: {
+        steps: ["Paso 1.1", "Paso 1.2", "Paso 1.3"],
+        file: "archivo_medios_magneticos.xlsx",
+        additionalContent: `
+            <p><strong>Solución 1</strong></p>
+            <p><a href="https://example.com/medios_magneticos_sol1" target="_blank">Documento Solución 1 MEDIOS MAGNETICOS</a></p>
+            <p><strong>Solución 2</strong></p>
+            <p><a href="https://example.com/medios_magneticos_sol2" target="_blank">Documento Solución 2 MEDIOS MAGNETICOS</a></p>
+        `
+    }
+        };
+
+        // Inicializar las opciones en el DOM
+        function initializeOptions(containerId, data) {
+            const optionsContainer = document.getElementById(containerId);
+            optionsContainer.innerHTML = ''; // Limpiar opciones previas
+            for (let key in data) {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option-item';
+                optionDiv.textContent = key.replace('_', ' ');
+                optionDiv.setAttribute('data-value', key);
+                optionDiv.onclick = () => displayMenu(key, data, containerId);
+                optionsContainer.appendChild(optionDiv);
+            }
+        }
+
+        function filterOptions(containerId) {
+            const searchValue = document.getElementById(`searchBox${containerId.charAt(containerId.length - 1)}`).value.toLowerCase();
+            const options = document.querySelectorAll(`#${containerId} .option-item`);
+            options.forEach(option => {
+                const optionText = option.textContent.toLowerCase();
+                option.style.display = optionText.includes(searchValue) ? '' : 'none';
+            });
+        }
+
+        function displayMenu(selectedOption, data, containerId) {
+    const stepsList = document.getElementById(`steps${containerId.charAt(containerId.length - 1)}`);
+    const downloadLink = document.getElementById(`downloadLink${containerId.charAt(containerId.length - 1)}`);
+    const additionalContent = document.getElementById(`additionalContent${containerId.charAt(containerId.length - 1)}`);
+    const subOptionsContainer = document.getElementById(`subOptions${containerId.charAt(containerId.length - 1)}`);
+
+    stepsList.innerHTML = '';
+    additionalContent.innerHTML = '';
+    if (selectedOption && data[selectedOption]) {
+      data[selectedOption].steps.forEach(step => {
+        const listItem = document.createElement('li');
+        listItem.textContent = step;
+        stepsList.appendChild(listItem);
+      });
+      downloadLink.href = data[selectedOption].file;
+      downloadLink.textContent = `Descargar ${data[selectedOption].file}`;
+      if (data[selectedOption].additionalContent) {
+        additionalContent.innerHTML = data[selectedOption].additionalContent;
+      }
+      document.getElementById(`menu${containerId.charAt(containerId.length - 1)}Content`).style.display = 'block';
+
+      // Mostrar el contenedor de subopciones
+      if (data[selectedOption].subOptions) {
+        subOptionsContainer.classList.remove('hidden');
+        displaySubOptions(selectedOption, data[selectedOption].subOptions, containerId.charAt(containerId.length - 1));
+      } else {
+        subOptionsContainer.classList.add('hidden'); // Ocultar si no hay subopciones
+      }
+    }
+  }
+
+
+
+
+        function displaySubMenu(parentOption, selectedSubOption, subOptionsData) {
+            const stepsList = document.getElementById(`steps${parentOption.charAt(parentOption.length - 1)}`);
+            const downloadLink = document.getElementById(`downloadLink${parentOption.charAt(parentOption.length - 1)}`);
+            const additionalContent = document.getElementById(`additionalContent${parentOption.charAt(parentOption.length - 1)}`);
+            stepsList.innerHTML = '';
+            additionalContent.innerHTML = '';
+            if (selectedSubOption && subOptionsData[selectedSubOption]) {
+                subOptionsData[selectedSubOption].steps.forEach(step => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = step;
+                    stepsList.appendChild(listItem);
+                });
+                downloadLink.href = subOptionsData[selectedSubOption].file;
+                downloadLink.textContent = `Descargar ${subOptionsData[selectedSubOption].file}`;
+                if (subOptionsData[selectedSubOption].additionalContent) {
+                    additionalContent.innerHTML = subOptionsData[selectedSubOption].additionalContent;
+                }
+            }
+        }
+        function displaySubOptions(parentOption, subOptionsData, menuNumber) {
+    const subOptionsList = document.getElementById(`subOptionsList${menuNumber}`);
+    subOptionsList.innerHTML = ''; // Limpiar sub opciones previas
+    for (let key in subOptionsData) {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'option-item';
+        optionDiv.textContent = key.replace('_', ' ');
+        optionDiv.setAttribute('data-value', key);
+        optionDiv.onclick = () => displaySubMenu(parentOption, key, subOptionsData); // Corregir aquí
+
+        subOptionsList.appendChild(optionDiv);
+    }
+}
+
+
+        function showMenu(menuId) {
+            document.getElementById('menu1Container').classList.add('hidden');
+            document.getElementById('menu2Container').classList.add('hidden');
+            document.getElementById(`${menuId}Container`).classList.remove('hidden');
+        }
+
+        // Inicialización al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeOptions('options1', data1);
+            initializeOptions('options2', data2);
+        });
+    </script>
+    
+</body>
+</html>

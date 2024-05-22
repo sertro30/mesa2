@@ -1,0 +1,267 @@
+SET SERVEROUTPUT ON;
+declare
+
+VN_ID_TECNICO NUMBER;
+PV_NOMBRE_TECNICO VARCHAR2(50);
+PV_APELLIDO_TECNICO VARCHAR2(50);
+PV_CIUDAD VARCHAR2(50);
+PV_SERIE VARCHAR2(50);
+
+VN_RESIDENTIFIERS NUMBER;
+VV_ESTADO_CITEM  VARCHAR2(5);
+VV_MOD_RECURSO  VARCHAR2(1);
+VN_ACCOUNT_ID NUMBER;
+VN_CPARTY_ID NUMBER;
+VV_INTERNALSTATE VARCHAR2(10);
+VN_TECNICO NUMBER;
+vn_state NUMBER;
+
+VN_RESITEM NUMBER;
+VN_RESTYPE_ID NUMBER;
+VN_DEVICEMODEL_ID NUMBER;
+VN_RESCLASS_ID NUMBER;
+VN_NETWORKNODE_ID NUMBER;
+VN_SUPPLIER_ID NUMBER;
+VN_OWNER_ID NUMBER;
+VN_PROVIDER_ID NUMBER;
+VN_CITEM_ID NUMBER;
+VN_APINSTANCE_ID NUMBER;
+VD_DFROM DATE;
+VD_DTO DATE;
+VV_PORTINGSTATUS VARCHAR2(5);
+
+vv_codart VARCHAR2(20);
+vn_resname_id number;
+vn_existe VARCHAR2(20);
+vn_maxcitem number;
+
+vn_idYtlabkardex NUMBER;
+VV_ORIGIN VARCHAR2(3);
+VV_DESTINATION VARCHAR2(3);
+VN_DISTRIBUTIONUNIT NUMBER;
+
+
+vn_ctx number;
+login number;
+vn_RESfunction NUMBER;
+
+begin
+
+  PV_NOMBRE_TECNICO := '%&NOMBRE_TECNICO_MAYUSCULAS%';
+  PV_APELLIDO_TECNICO := '%&APELLIDO_TECNICO_MAYUSCULAS%';
+  PV_CIUDAD := '&CIUDAD_TECNICO_MAYUSCULAS';
+  PV_SERIE :=  '&SERIE_EQUIPO';
+  
+  login := ylogin('ititan' ,'ititan'); ---ingresar credenciales
+  vn_ctx := ecomsession.figetlasttxid;
+   
+  BEGIN
+  select T1.ID
+  INTO VN_ID_TECNICO
+  from TRMDISTRIBUTIONUNITS T1
+  where T1.SHORTNAME LIKE (PV_APELLIDO_TECNICO||PV_NOMBRE_TECNICO)
+  AND LOCALIZATION <> 'INVALID'
+  -----and t1.id = 1269
+  AND T1.PARENTDUNIT_ID = (select T2.ID from TRMDISTRIBUTIONUNITS T2
+                          WHERE UPPER(T2.FULLNAME) = PV_CIUDAD
+                          AND T2.PARENTDUNIT_ID IS NULL
+                           )
+  ;
+  
+      DBMS_OUTPUT.PUT_LINE(VN_ID_TECNICO);
+      
+      VV_MOD_RECURSO :='N';
+  
+     begin
+     
+          SELECT  T2.ID RESIDENTIFIERS, t5.ID, t5.RESTYPE_ID, t5.DEVICEMODEL_ID, t5.RESCLASS_ID, t5.NETWORKNODE_ID, t5.SUPPLIER_ID, t5.OWNER_ID, t5.PROVIDER_ID, t5.CITEM_ID,
+          t5.APINSTANCE_ID, t5.DFROM, t5.DTO, t5.PORTINGSTATUS,t5.INTERNALSTATE, t5.CPARTYACCOUNT_ID, T5.CPARTY_ID
+          INTO VN_RESIDENTIFIERS, VN_RESITEM,VN_RESTYPE_ID,VN_DEVICEMODEL_ID,VN_RESCLASS_ID,VN_NETWORKNODE_ID,VN_SUPPLIER_ID,VN_OWNER_ID ,VN_PROVIDER_ID,VN_CITEM_ID,VN_APINSTANCE_ID,
+          VD_DFROM ,VD_DTO,VV_PORTINGSTATUS,VV_INTERNALSTATE, VN_ACCOUNT_ID, VN_CPARTY_ID
+        FROM TRMRESITEMIDENTIFIERS T2,  tRMResourceItems T5
+            WHERE T2.RESITEM_ID       = T5.ID
+            and T2.RESTYPE_ID = T5.RESTYPE_ID
+            AND T2.VVALUE = PV_SERIE
+            ;
+
+          IF (VN_ACCOUNT_ID IS NULL) THEN
+             VV_MOD_RECURSO :='Y';
+          ELSE
+            if (VN_ACCOUNT_ID > 0) then 
+            
+                BEGIN
+                  select T1.STATE,MAX(T1.CITEM_ID)
+                 INTO VV_ESTADO_CITEM , vn_maxcitem
+                   from vAMContractedItems T1
+                  where T1.APADDRESS = PV_SERIE
+                  and T1.CPARTYACCOUNT_ID = VN_ACCOUNT_ID
+                 group by T1.STATE 
+                  ;
+            
+                   IF (VV_ESTADO_CITEM = 'A' OR VV_ESTADO_CITEM = 'S' OR VV_ESTADO_CITEM = 'O') THEN
+                    DBMS_OUTPUT.PUT_LINE('ERROR!! EL EQUIPO SE ENCUENTRA EN UNA CUENTA ACTIVA');
+                    ROLLBACK;
+                    VV_MOD_RECURSO :='N';
+                    else
+                    VV_MOD_RECURSO :='Y';
+                  
+                   end if;
+                  
+                EXCEPTION WHEN NO_DATA_FOUND THEN
+                  VV_MOD_RECURSO :='Y';
+                
+                END;
+               
+            END IF;
+            END IF;
+             
+               if (VN_ACCOUNT_ID = NULL OR VV_MOD_RECURSO ='Y') then 
+                 DBMS_OUTPUT.PUT_LINE('SE MODIFICO PASO1 (RECURSO) ... TODO OK!! ');
+                 
+                 --PASO 1: MODIFICAR EL RECURSO EN TITAN
+                 vn_state := ylabpack.fnlbresourcestate (VN_RESTYPE_ID, 'A');
+                 
+                 irmresourceitem.rmodifyresourceitem
+                 (pi_id => VN_RESITEM,
+                  pi_restypeid => VN_RESTYPE_ID,
+                  pi_devicemodelid => VN_DEVICEMODEL_ID,
+                  pi_resclassid => VN_RESCLASS_ID,
+                  pi_networknodeid => VN_NETWORKNODE_ID,
+                  pi_distributionunitid => VN_ID_TECNICO, --tecnico ingresado en parametro de entrada  
+                  pi_supplierid => VN_SUPPLIER_ID,
+                  pi_ownerid => VN_OWNER_ID,
+                  pi_providerid => VN_PROVIDER_ID,
+                  pi_cpartyid => NULL,
+                  pi_cpartyaccountid => NULL,
+                  pi_citemid => VN_CITEM_ID,
+                  pi_apinstanceid => VN_APINSTANCE_ID,
+                  pd_dfrom => VD_DFROM,
+                  pd_dto => VD_DTO,
+                  pv_portingstatus => VV_PORTINGSTATUS,
+                  pi_currresstateid => vn_state,
+                  pv_internalstate => 'A',
+                  Pi_CompResItemId => TO_NUMBER(NULL),
+                  pi_ctxid => vn_ctx,
+                  pd_loadtime => SYSDATE
+                 );
+                 
+                 
+                 
+                 --PASO 2: INSERTAR REGISTRO EN TABLAS PEDECO
+                  Select  dv.codart 
+                  into vv_codart
+                  from qrmresitemidentifiers rid, qrmresourceitems rt,  YTDEVICEMODEL_HIPERK dv, qRMResTypeIdentifiers trmt 
+                   where upper(rid.vvalue) = PV_SERIE
+                  and  rt.id = rid.resitem_id 
+                  and rt.restype_id = rid.restype_id 
+                  and rt.cparty_id is null
+                  and dv.devicemodel_id = rt.devicemodel_id 
+                  and dv.restype_id = rt.restype_id  
+                  and rid.restypeident_id  = trmt.id 
+                  and trmt.identtype_id = 500081;
+                             
+                
+                  SELECT  MAX(DISTINCT(r.id)) 
+                  into vn_resname_id
+                  FROM qtaratingtableitems r, qpcratingnames n
+                  WHERE r.value01 = vv_codart
+                  and r.ratingname_id = n.ID
+                  AND r.ratingtable_id IN  (3, 36)
+                  and r.isvalid = 'Y'
+                  and r.ispending = 'N'
+                  and sysdate between nvl(r.dfrom,sysdate) and nvl(r.dto,sysdate)
+                  and r.value02 is null
+                  and r.value04 is null;
+                  
+                  SELECT COUNT (t.ID)
+                  INTO vN_existe
+                  FROM ytrmresassignment t
+                 WHERE t.resitem_id = VN_RESITEM
+                 AND t.worker_id = VN_ID_TECNICO
+                 AND t.STATE IN ( 'A', 'R')
+                 AND t.DEVDATE IS NULL;
+                 
+                if vN_existe = 0 then
+                DBMS_OUTPUT.PUT_LINE('SE MODIFICO PASO 2 (PEDECO)... TODO OK!!! ');
+                      YRESMANAGEMENT.rsetequipassigment(pn_worker          => VN_ID_TECNICO
+                                                       ,pn_resitem         => VN_RESITEM
+                                                       ,pn_material        => null
+                                                       ,pn_material_amount => null
+                                                       ,pd_shipdate        => SYSDATE - 1
+                                                       ,pd_devdate         => null
+                                                       ,pv_state           => 'A'
+                                                       ,pn_pinstance       => 1
+                                                       ,pn_resname         => vn_resname_id
+                                                       ,pn_requestid       => 1
+                                                       ,pv_isbattery_rc    => NULL
+                                                       );
+                end if;
+                
+                --PASO 3: MOVIMIENTOS SGR
+                
+                BEGIN
+                  SELECT t1.id, T1.ORIGIN,T1.DESTINATION,T1.DISTRIBUTIONUNIT_ID
+                 INTO  vn_idYtlabkardex,VV_ORIGIN,VV_DESTINATION, VN_DISTRIBUTIONUNIT
+                      FROM
+                        (SELECT T3.*
+                        FROM YTLABKARDEX t3
+                        WHERE t3.RESIDENTIFIERS_ID IN VN_RESIDENTIFIERS
+                        AND t3.DATEOUT is  NULL  
+                        and T3.COMPCOD <= 05
+                        order by t3.DATEIN desc
+                        ) T1
+                      WHERE ROWNUM   <2;
+                   
+                      IF (VV_ORIGIN = 'C' AND VV_DESTINATION = 'T' AND VN_DISTRIBUTIONUNIT =  VN_ID_TECNICO  ) THEN
+                        DBMS_OUTPUT.PUT_LINE('SGR OK!!!');
+                      ELSE 
+                        IF (VV_ORIGIN = 'C' AND VV_DESTINATION = 'T' AND VN_DISTRIBUTIONUNIT !=  VN_ID_TECNICO ) THEN
+                          UPDATE YTLABKARDEX SET DISTRIBUTIONUNIT_ID =VN_ID_TECNICO WHERE ID = vn_idYtlabkardex;
+                          DBMS_OUTPUT.PUT_LINE('UPDATE TECNICO SGR OK!!!');
+                        else
+                          IF (VV_DESTINATION = 'C') THEN
+                            vn_RESfunction:= ylabpack.fnResourceAllocation(PV_SERIE,VN_RESITEM,VN_ID_TECNICO,NULL, NULL,'REG-SIS',3);
+                              DBMS_OUTPUT.PUT_LINE('MOVIMIENTOS CLIENTE - TECNICO SGR OK!!!');
+                             else
+                                IF (VV_DESTINATION = 'T') THEN
+                                     IF (VN_ACCOUNT_ID> 0 AND  VN_CPARTY_ID> 0) THEN
+                                         vn_RESfunction:= ylabpack.fnResourceAllocation(PV_SERIE,VN_RESITEM,0,VN_ACCOUNT_ID, VN_CPARTY_ID,'REG-SIS',2);  --TECNICO -CLIENTE
+                                         dbms_lock.sleep(1); 
+                                         vn_RESfunction:= ylabpack.fnResourceAllocation(PV_SERIE,VN_RESITEM,VN_ID_TECNICO,NULL, NULL,'REG-SIS',3);  --CLIENTE -TECNICO
+                                          DBMS_OUTPUT.PUT_LINE('MOVIMIENTOS TECNICO - CLIENTE SGR OK!!!');
+                                          DBMS_OUTPUT.PUT_LINE('MOVIMIENTOS CLIENTE - TECNICO SGR OK!!!');
+                                      ELSE
+                                      DBMS_OUTPUT.PUT_LINE('ERROR!!! EQUIPO EN TECNICO SIN CLIENTE.. VERIFICAR UBICACION DEL EQUIPO EN SGR');
+                                  ROLLBACK;
+                                      END IF;
+                                  ELSE
+                                    DBMS_OUTPUT.PUT_LINE('ERROR!!! VERIFICAR UBICACION DEL EQUIPO EN SGR');
+                                    ROLLBACK;
+                          end if;
+                          END IF;
+                        END IF;
+                      END IF;
+
+
+                EXCEPTION WHEN NO_DATA_FOUND THEN
+                --MOVIMIENTO CLIENTE - TECNICO
+                 vn_RESfunction:= ylabpack.fnResourceAllocation(PV_SERIE,VN_RESITEM,VN_ID_TECNICO,NULL, NULL,'REG-SIS',3);
+                 DBMS_OUTPUT.PUT_LINE('MOVIMIENTOS CLIENTE - TECNICO SGR OK!!!');
+                 
+                END;  
+          
+            END IF;
+      
+      EXCEPTION WHEN NO_DATA_FOUND THEN
+       DBMS_OUTPUT.PUT_LINE('ERROR!!!.. SERIE MAL INGRESADA');
+       ROLLBACK;
+      END;        
+
+  EXCEPTION WHEN NO_DATA_FOUND THEN
+    DBMS_OUTPUT.PUT_LINE('ERROR!!!.. LOS DATOS INGRESADOS SON INCORRECTOS, POR FAVOR VERIFICAR');
+    ROLLBACK;
+  END;
+
+ecomsession.rclosetx;
+
+end;

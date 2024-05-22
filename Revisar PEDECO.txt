@@ -1,0 +1,62 @@
+--Equipos que aparecen en el flujo PEDECO
+--lenar el campo worker_id (id del tecnico )
+
+SELECT
+                             decode ( ( select n.NAME  from qtaratingtableitems r, qpcratingnames n
+                                        where
+                                            r.ID  = ra.resname_id
+                                          AND r.ratingtable_id IN ( 3,36)
+                                          and r.ratingname_id = n.ID
+                                          AND r.isvalid = 'Y' and r.ispending = 'N'
+                                          and sysdate between nvl(r.dfrom,sysdate) and nvl(r.dto,sysdate)
+                                          ),null,'N/A',
+                                          ( select n.NAME  from qtaratingtableitems r, qpcratingnames n
+                                        where
+                                            r.ID  = ra.resname_id
+                                          AND r.ratingtable_id IN ( 3,36)
+                                          and r.ratingname_id = n.ID
+                                          AND r.isvalid = 'Y' and r.ispending = 'N'
+                                          and sysdate between nvl(r.dfrom,sysdate) and nvl(r.dto,sysdate)
+                                          )
+                                     ) as equipo
+                          ,ra.resitem_id , resitemid.vvalue as serie,
+                             case
+                              WHEN( select 1 from YTLABKARDEX
+                                   where id = (
+                                    select max (id)  from YTLABKARDEX
+                                    where RESIDENTIFIERS_ID = resitemid.id
+                                    and COMPCOD <= '05'
+                                    )
+                                    and ORIGIN = 'C'
+                                    AND DESTINATION in ('T'))=1
+                                then 'Retirado'
+                                when ra.state in ('A','R') and resitem.internalstate = 'R' then 'En instalacion'
+                                when ra.state in ('A','R') and resitem.internalstate = 'A' then 'Disponible'
+                                when ra.state in ('A','R') and resitem.internalstate = 'P' then 'Perdido'
+                                else 'Desconocido'
+                             end as estado,
+                              to_date(ra.shipdate, 'dd/mm/yyyy hh24:mi:ss') as fechaentrega,  RA.worker_id,ra.*, resitem.*                      
+                              FROM ytrmresassignment ra ,qrmresourceitems resitem, qrmresitemidentifiers resitemid,
+                               qRMResTypeIdentifiers trmt --, qtaratingtableitems r, qpcratingnames n
+                          WHERE   to_date(ra.shipdate,'dd/mm/yyyy hh24:mi:ss') <= SYSDATE
+                       --   and  RA.worker_id in ( 3282)--INGRESAR tecnico o agencia
+                 
+                
+                           and  ra.material_id is null
+                              and ra.devdate is null
+                         and ra.state in ('A','R')
+                                  and resitem.CURRRESSTATE_ID not in ( select id from TRMRESSTATES t1
+                                                                   where name = 'Inservible - No Utilizar')
+                               and resitem.distributionunit_id = ra.worker_id
+                               and resitem.internalstate  in ('A')
+                                and resitem.cparty_id is null
+                          and resitem.dto is null
+                           AND resitem.restype_id not in (2)
+                                 and resitem.id = ra.resitem_id
+                                 and resitemid.resitem_id = resitem.id
+                                 and resitemid.restypeident_id  = trmt.id
+                               and trmt.identtype_id = 500081
+                       and resitemid.VVALUE in ('STGU3C3AF698') ---Ingresar la serie del equipo
+;
+
+
